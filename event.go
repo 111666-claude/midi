@@ -68,14 +68,15 @@ func ControlChange(channel, controller, newVal int) *Event {
 	}
 }
 
-// ProgramChange sets a new value the same way as ControlChange
-// but implements Mode control and special message by using reserved controller numbers 120-127.
+// ProgramChange sets a new program (patch) number on the given channel. The
+// program value is between 0 and 127. The newVal argument is ignored and kept
+// for backwards compatibility of the function signature.
 func ProgramChange(channel, controller, newVal int) *Event {
+	_ = newVal
 	return &Event{
 		MsgChan:    uint8(channel),
 		MsgType:    uint8(EventByteMap["ProgramChange"]),
-		Controller: uint8(controller),
-		NewValue:   uint8(newVal),
+		NewProgram: uint8(controller),
 	}
 }
 
@@ -344,10 +345,9 @@ func (e *Event) Encode() ([]byte, error) {
 					This message sent when the patch number changes. Value is the new program number.
 		*/
 	case 0xC:
+		// Program Change carries a single data byte, the new program
+		// number (0-127).
 		if err := binary.Write(buff, binary.BigEndian, e.NewProgram); err != nil {
-			return buff.Bytes(), err
-		}
-		if err := binary.Write(buff, binary.BigEndian, e.NewValue); err != nil {
 			return buff.Bytes(), err
 		}
 		// Channel Pressure (Aftertouch)
